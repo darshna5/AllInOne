@@ -2,11 +2,46 @@ package com.example.allinone
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.MutableLiveData
+import com.example.allinone.di.RetroServiceInterface
+import com.example.allinone.model.RecyclerList
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import javax.inject.Inject
 
-// @Inject tells Dagger how to create instances of LoginViewModel
-class MainActivityViewModel(application: Application) :AndroidViewModel(application){
-    @Inject lateinit var loginRetrofitService: LoginRetrofitService
+class MainActivityViewModel(application: Application) : AndroidViewModel(application){
+    @Inject
+    lateinit var mService: RetroServiceInterface
 
+    private lateinit var liveDataList: MutableLiveData<RecyclerList>
+
+
+    init {
+        //here we need to init application.
+        (application as MyApplication).getRetroComponent().inject(this)
+        liveDataList = MutableLiveData()
+    }
+
+
+    fun getLiveDataObserver(): MutableLiveData<RecyclerList> {
+        return liveDataList
+    }
+
+    fun makeApicall() {
+        val call: Call<RecyclerList>?  = mService.getDataFromAPI("atl")
+        call?.enqueue(object : Callback<RecyclerList>{
+            override fun onFailure(call: Call<RecyclerList>, t: Throwable) {
+                liveDataList.postValue(null)
+            }
+
+            override fun onResponse(call: Call<RecyclerList>, response: Response<RecyclerList>) {
+                if(response.isSuccessful) {
+                    liveDataList.postValue(response.body())
+                } else {
+                    liveDataList.postValue(null)
+                }
+            }
+        })
+    }
 }
